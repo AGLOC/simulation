@@ -1414,13 +1414,15 @@ function buildProspectData(statut) {
   };
 }
 
-let prospectEnvoye = false;
+// Un envoi par type et par visite : 'coordonnees' (étape 4 validée) et 'signature' (contrat signé)
+const prospectEnvois = new Set();
 
-function envoyerProspect(statut) {
-  if (prospectEnvoye) return;
+function envoyerProspect(statut, type) {
+  type = type || 'coordonnees';
+  if (prospectEnvois.has(type)) return;
   const data = buildProspectData(statut);
   if (!data.nom && !data.email) return;
-  prospectEnvoye = true;
+  prospectEnvois.add(type);
   // S'assurer qu'EmailJS est initialisé
   if (typeof emailjs === 'undefined') { console.error('EmailJS non chargé'); return; }
   initEmailJS();
@@ -1429,16 +1431,7 @@ function envoyerProspect(statut) {
     .then(r => console.log('[EmailJS] Prospect envoyé OK:', r.status, statut))
     .catch(e => console.error('[EmailJS] ERREUR prospect:', e.status, e.text, e));
 }
-window.addEventListener('beforeunload', function() {
-  if (prospectEnvoye) return; // Contrat signé ou devis généré : pas d'email abandon
-  const step4Done = document.getElementById('t4')?.classList.contains('done');
-  if (step4Done) {
-    envoyerProspect('Abandon après infos personnelles');
-  } else {
-    const step3Done = document.getElementById('t3')?.classList.contains('done');
-    if (step3Done) envoyerProspect('Abandon après offre');
-  }
-});
+// Envoi à la fermeture de la page supprimé : le prospect est envoyé dès la validation de ses coordonnées (étape 4).
 
 function step4Next() {
   const fields = ['civilite','prenom','nom','email','tel','adr-perso','cp','ville'];
@@ -1459,6 +1452,7 @@ function step4Next() {
   }
   if (!ok) return;
   markDone(4);
+  envoyerProspect('Coordonnées renseignées – contrat non signé', 'coordonnees');
   showStep(5);
 }
 
@@ -1559,8 +1553,7 @@ function finalSubmit() {
     // Vérif jsPDF
     if (!window.jspdf || !window.jspdf.jsPDF) { alert('ERREUR: jsPDF non chargé'); return; }
 
-    // envoyerProspect marque lui-même le prospect comme envoyé
-    envoyerProspect('Contrat signé ✅');
+    envoyerProspect('Contrat signé ✅', 'signature');
     generatePDF();
 
   } catch(err) {
