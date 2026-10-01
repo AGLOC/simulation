@@ -1559,7 +1559,7 @@ function finalSubmit() {
     // Vérif jsPDF
     if (!window.jspdf || !window.jspdf.jsPDF) { alert('ERREUR: jsPDF non chargé'); return; }
 
-    prospectEnvoye = true;
+    // envoyerProspect marque lui-même le prospect comme envoyé
     envoyerProspect('Contrat signé ✅');
     generatePDF();
 
